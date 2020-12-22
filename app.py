@@ -1,22 +1,42 @@
-# 1. import Flask
-from flask import Flask
+import datetime as dt
+import numpy as np
+import pandas as pd
 
-# 2. Create an app, being sure to pass __name__
+import sqlalchemy
+from sqlalchemy.ext.automap import automap_base
+from sqlalchemy.orm import Session
+from sqlalchemy import create_engine, func
+
+from flask import Flask, jsonify
+
 app = Flask(__name__)
 
+engine = create_engine("sqlite:///Resources/hawaii.sqlite")
+Base= automap_base()
+Base.prepare(engine, reflect=True)
+measurements = Base.classes.measurement
+stations = Base.classes.station
+session = Session(engine)
 
-# 3. Define what to do when a user hits the index route
 @app.route("/")
 def home():
-    print("Server received request for 'Home' page...")
-    return "Welcome to my 'Home' page!"
+    output = ('<h3>copy bottom links to url to get results:</h3>' 
+            '<ul><li>/api/v1.0/precipitation</li>' 
+            '<li>/api/v1.0/stations</li>' 
+            '<li>/api/v1.0/tobs</li>' 
+            '<li>/api/v1.0/<start> and /api/v1.0/<start>/<end></li></ul>')
+    return output
 
+@app.route('/api/v1.0/precipitation')
+def precipitation():
+    precip = session.query(measurements.date, measurements.prcp).all()
+    return { date : prcp for date, prcp in precip }
 
-# 4. Define what to do when a user hits the /about route
-@app.route("/about")
-def about():
-    print("Server received request for 'About' page...")
-    return "Welcome to my 'About' page!"
+@app.route('/api/v1.0/stations')
+def stn():
+    stns = session.query(stations.name).all()
+    return pd.DataFrame(stns).to_json()
+
 
 
 if __name__ == "__main__":
